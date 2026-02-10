@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Hashcat GUI</title>
+
+  <style>
+    :root{
+      --bg: #0b1220;
+      --panel: #111a2e;
+      --panel-2: #0f1730;
+      --text: #e7ecf5;
+      --muted: #b7c0d4;
+      --border: rgba(255,255,255,0.10);
+
+      --btn: #3498db;
+      --btn-hover: #2980b9;
+      --danger: #e74c3c;
+      --danger-hover: #c0392b;
+
+      --code-bg: #0a1022;
+      --code-border: rgba(255,255,255,0.12);
+    }
+
+    * { box-sizing: border-box; }
+
+    
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image: url("/static/images/hashcat-gui-logo.png");
+      background-repeat: no-repeat;
+      background-position: center center;
+      background-size: cover;
+      opacity: 0.18;              
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      max-width: 980px;
+      margin: 20px auto;
+      padding: 20px;
+      position: relative;
+      z-index: 1;
+    }
+
+    h1, h2 {
+      margin: 0 0 16px 0;
+      color: var(--text);
+      letter-spacing: 0.2px;
+    }
+
+    
+    .card {
+      background: linear-gradient(
+        180deg,
+        rgba(17, 26, 46, 0.88),
+        rgba(15, 23, 48, 0.88)
+      );
+      padding: 20px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+      margin-bottom: 20px;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+    }
+
+    label {
+      display: block;
+      margin: 14px 0 6px;
+      font-weight: bold;
+      color: var(--text);
+    }
+
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 10px;
+    }
+
+    input, select {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      color: var(--text);
+      outline: none;
+    }
+
+    input::file-selector-button {
+      background: rgba(255,255,255,0.10);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 10px;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+
+    small {
+      display:block;
+      margin-top:6px;
+      color: var(--muted);
+    }
+
+    button {
+      border: none;
+      background: var(--btn);
+      color: #ffffff;
+      cursor: pointer;
+    }
+    button:hover { background: var(--btn-hover); }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .btn-danger { background: var(--danger); }
+    .btn-danger:hover { background: var(--danger-hover); }
+
+    .hidden { display:none; }
+
+    .row {
+      display:flex;
+      gap:12px;
+      margin-top:16px;
+      flex-wrap:wrap;
+    }
+    .row button {
+      flex: 1;
+      min-width: 200px;
+      padding: 14px;
+      font-size: 18px;
+      border-radius: 12px;
+    }
+
+    #status {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      padding: 14px;
+      border-radius: 12px;
+    }
+
+    .kv { margin: 6px 0; color: var(--muted); }
+    .kv strong { color: var(--text); }
+
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--code-border);
+      padding: 12px;
+      border-radius: 12px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      color: var(--text);
+      margin: 8px 0 12px;
+    }
+
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      font-size: 12px;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>Hashcat GUI</h1>
+
+    <hr>
+
+    <div class="card">
+      <form id="crackForm" enctype="multipart/form-data">
+        <label>Hash File to crack</label>
+        <input type="file" name="hash_file" accept=".txt" required>
+
+        <label>Argument / Hash Type (-m)</label>
+        <select name="hash_mode" required>
+              <optgroup label="General Hashes"></optgroup>
+                <option value="0">0 MD5</option>
+                <option value="10">10 md5($pass.$salt)</option>
+                <option value="20">20 md5($salt.$pass)</option>
+                <option value="100">100 SHA1</option>
+                <option value="110">110 sha1($pass.$salt)</option>
+                <option value="120">120 sha1($salt.$pass)</option>
+                <option value="130">130 sha1($salt.$pass.$salt)</option>
+                <option value="1400">1400 SHA-256</option>
+                <option value="1410">1410 sha256($pass.$salt)</option>
+                <option value="1420">1420 sha256($salt.$pass)</option>
+                <option value="1430">1430 sha256($salt.$pass.$salt)</option>
+                <option value="1700">1700 SHA-512</option>
+                <option value="1710">1710 sha512($pass.$salt)</option>
+                <option value="1720">1720 sha512($salt.$pass)</option>
+                <option value="1730">1730 sha512($salt.$pass.$salt)</option>
+              </optgroup>
+              <optgroup label="Unix / Linux"></optgroup>    <!-- Unix / Linux -->
+                <option value="500">500 md5crypt $1$</option>
+                <option value="1800">1800 sha512crypt $6$</option>
+                <option value="7400">7400 sha256crypt $5$</option>
+                <option value="3200">3200 bcrypt $2*$</option>
+                <option value="1500">1500 descrypt</option>
+                <option value="1600">1600 Apache $apr1$ MD5</option>
+              </optgroup>
+              <optgroup label="Windows"></optgroup>    <!-- Windows -->
+                <option value="1000">1000 NTLM</option>
+                <option value="3000">3000 LM</option>
+                <option value="5500">5500 NetNTLMv1</option>
+                <option value="5600">5600 NetNTLMv2</option>
+              </optgroup>
+              <optgroup label="Database"></optgroup>  <!-- Database -->
+                <option value="3100">3100 Oracle H: Type (DES)</option>
+                <option value="112">112 Oracle S: Type (SHA1)</option>
+                <option value="131">131 MSSQL (2000)</option>
+                <option value="132">132 MSSQL (2005)</option>
+                <option value="1731">1731 MSSQL (2012/2014)</option>
+                <option value="12">12 PostgreSQL</option>
+                <option value="11">11 MySQL 5.x</option>
+                <option value="200">200 MySQL 4.1+</option>
+              </optgroup>
+              <optgroup label="Web Applications"></optgroup>  <!-- Web Applications -->
+                <option value="2611">2611 vBulletin</option>
+                <option value="400">400 phpass</option>
+                <option value="2811">2811 IPB2+</option>
+                <option value="3710">3710 MediaWiki</option>
+                <option value="7900">7900 Drupal 7</option>
+                <option value="21">21 osCommerce</option>
+                <option value="124">124 Django</option>
+              </optgroup>
+              <optgroup label="Password Managers"></optgroup> <!-- Password Managers -->
+                <option value="5200">5200 Password Safe v3</option>
+                <option value="6800">6800 LastPass</option>
+                <option value="13400">13400 KeePass 1.x</option>
+                <option value="13401">13401 KeePass 2.x</option>
+                <option value="900">900 Lotus Notes/Domino 5</option>
+              </optgroup>
+              <optgroup label="Wi-Fi Security"></optgroup>  <!-- Wi-Fi (802.11) -->
+                <option value="2500">WPA/WPA2 2500 (Legacy PMKID/EAPOL)</option>
+                <option value="22000">WPA-PBKDF2-PMKID+EAPOL 22000 (Recommended)</option>
+                <option value="22001">WPA-PMK-PMKID+EAPOL 22001</option>
+                <option value="5300">5300 IKE-PSK (Aggressive Mode)</option>
+                <option value="5400">5400 IKE-PSK (Main Mode)</option>
+                <option value="16800">16800 WPA3-SAE (Dragonfly)</option>
+              </optgroup>
+              <optgroup label="Windows/Cisco Authentication"></optgroup>  <!-- Cisco Wireless -->
+                <option value="5500">5500 NetNTLMv1</option>
+                <option value="5600">5600 NetNTLMv2</option>
+              </optgroup>
+              <optgroup label="EAP/RADIUS/Auth Protocols"></optgroup>  <!-- EAP / RADIUS / Auth Protocols -->
+                <option value="4800">4800 iSCSI CHAP authentication</option>
+                <option value="10200">10200 CRAM-MD5</option>
+                <option value="16400">16400 HTTP Digest</option>
+              </optgroup>
+              <optgroup label="SNMP / Network Infrastructure"></optgroup>  <!-- SNMP / Network Infrastructure -->
+                <option value="250">250 SNMPv1/v2</option>
+                <option value="16100">16100 TACACS+</option>
+              </optgroup>
+              <optgroup label="Bluetooth"></optgroup>  <!-- Bluetooth / Short-Range Wireless -->
+                <option value="12000">12000 Bluetooth PIN</option>
+              </optgroup>
+              <optgroup label="Cellular / Mobile SIM"></optgroup>  <!-- Cellular / SIM -->
+                <option value="10300">10300 SAP CODVN B (BlueCoat)</option>
+                <option value="5800">5800 Android PIN</option>
+                <option value="10100">10100 SipHash</option>
+              </optgroup>
+              <optgroup label="Compression Archives"></optgroup>  <!-- Archives -->
+                <option value="11600">11600 7-Zip</option>
+                <option value="12500">12500 RAR3-hp</option>
+                <option value="13000">13000 RAR5</option>
+                <option value="13600">13600 WinZip</option>
+                <option value="17200">17200 PKZIP (Compressed)</option>
+              </optgroup>
+              <optgroup label="Crypto / Blockchain"></optgroup>  <!-- Crypto / Blockchain -->
+                <option value="11300">11300 Bitcoin Wallet</option>
+                <option value="16600">16600 Electrum Wallet</option>
+              </optgroup>
+              <optgroup label="macOS"></optgroup>  <!-- macOS -->
+                <option value="7100">7100 macOS v10.8+</option>
+                <option value="1722">1722 macOS v10.7</option>
+              </optgroup>
+              <optgroup label="Microsoft Office"></optgroup><!-- Microsoft Office -->
+                <option value="9400">9400 MS Office 2007</option>
+                <option value="9500">9500 MS Office 2010</option>
+                <option value="9600">9600 MS Office 2013</option>
+                <option value="9710">9710 MS Office 2016 - SheetProtection</option>
+                <option value="9800">9800 MS Office 2003 $0/$1, MD5 + RC4</option>
+                <option value="9810">9810 MS Office 2003 $0/$1, MD5 + RC4, collider #1</option>
+                <option value="9820">9820 MS Office 2003 $0/$1, MD5 + RC4, collider #2</option>
+                <option value="9900">9900 MS Office 2003 $3, SHA1 + RC4</option>
+                <option value="9910">9910 MS Office 2003 $3, SHA1 + RC4, collider #1</option>
+                <option value="9920">9920 MS Office 2003 $3, SHA1 + RC4, collider #2</option>
+                <option value="9930">9930 MS Office 2003 $3/$4, SHA1 + RC4</option>
+              </optgroup>
+              <!-- Add more as needed -->
+        </select>
+
+        <label>Attack Mode</label>
+        <select id="attack_mode" name="attack_mode" required>
+          <option value="">Choose attack type...</option>
+          <option value="0">Dictionary Attack</option>
+          <option value="3">Brute-Force / Mask Attack</option>
+          <option value="6">Hybrid: Dictionary + Mask (append)</option>
+          <option value="7">Hybrid: Mask + Dictionary (prepend)</option>
+        </select>
+
+        <div id="wordlist_section" class="hidden">
+          <label>Wordlist / Dictionary</label>
+          <input type="file" name="wordlist_file" id="wordlist_file" accept=".txt,.dic,.lst,.words">
+          <small style="margin-top:10px;">Or select a local wordlist</small>
+        <select name="wordlist_preset" id="wordlist_preset">
+          <option value="">Loading local wordlists...</option>
+        </select>
+
+        <small id="wordlists_hint"></small>
+
+        </div>
+
+        <div id="rules_section" class="hidden">
+          <label>Rules (-r)</label>
+          <select name="rule_preset" id="rule_preset">
+            <option value="">Loading rules...</option>
+          </select>
+
+          <div id="rule_upload_wrap" class="hidden" style="margin-top:10px;">
+            <label style="margin-top:0;">Upload rule file (.rule)</label>
+            <input type="file" name="rule_file" accept=".rule">
+            <small>Optional: upload a custom .rule file (or choose a system rule above).</small>
+          </div>
+
+          <small id="rules_hint"></small>
+        </div>
+
+        <div id="mask_section" class="hidden">
+          <label>Mask (?d=digit, ?l=lower, ?u=upper, ?s=special, ?a=all)</label>
+          <input type="text" name="mask" placeholder="e.g. ?d?d?d?d or pass?l?l?d?d">
+          <small>Examples: ?d?d?d?d, ?l?l?l?l?l, MyPass?u?u?d?d</small>
+        </div>
+
+        <div id="hybrid_section" class="hidden">
+          <label>Hybrid Direction</label>
+          <select name="hybrid_position">
+            <option value="append">Wordlist + Mask (word -> word123)</option>
+            <option value="prepend">Mask + Wordlist (123 -> 123word)</option>
+          </select>
+        </div>
+
+        <div id="increment_section" class="hidden">
+          <label>
+            <input type="checkbox" name="increment">
+            Enable Increment Mode (grow mask length)
+          </label>
+          <div style="margin-left:20px; display:flex; gap:10px; flex-wrap:wrap;">
+            <div>
+              Min length:
+              <input type="number" name="inc_min" value="1" min="1" max="10" style="width:110px;">
+            </div>
+            <div>
+              Max length:
+              <input type="number" name="inc_max" value="8" min="1" max="20" style="width:110px;">
+            </div>
+          </div>
+        </div>
+
+        <div class="row">
+          <button id="startBtn" type="submit">Start Cracking</button>
+          <button id="stopBtn" type="button" class="btn-danger" disabled>Stop Job</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Live Status</h2>
+      <div id="status">
+        <div class="kv"><strong>Job:</strong> <span id="job">Idle</span></div>
+        <div class="kv"><strong>Running:</strong> <span id="running">false</span></div>
+        <div class="kv"><strong>Progress:</strong> <span id="progress">Not started</span></div>
+        <div class="kv"><strong>ETA:</strong> <span id="eta">N/A</span><span class="badge" id="eta_badge">N/A</span></div>
+        <div class="kv"><strong>Last update:</strong> <span id="last_update">N/A</span></div>
+        <div class="kv"><strong>Exit code:</strong> <span id="return_code">N/A</span></div>
+        <div class="kv"><strong>Error:</strong> <span id="error">None</span></div>
+
+        <div class="kv"><strong>Command:</strong></div>
+        <pre class="mono" id="cmd">N/A</pre>
+
+        <div class="kv"><strong>Recovered:</strong></div>
+        <pre class="mono" id="recovered">None</pre>
+
+        <div class="kv"><strong>Log tail:</strong></div>
+        <pre class="mono" id="log_tail">None</pre>
+
+        <button id="downloadBtn" style="display:none;padding:10px 20px;">Download recovered_hashes.txt</button>
+      </div>
+    </div>
+
+    <div class="card">
+  <h2>.pcap file → Hashcat format Tool</h2>
+
+  <form id="pcapForm">
+    <div class="form-group">
+      <label for="pcap_file">Upload pcap/pcapng file</label>
+      <input
+        type="file"
+        id="pcap_file"
+        name="pcap_file"
+        accept=".pcap,.pcapng"
+        required
+      >
+    </div>
+
+    <div class="form-group">
+      <label for="pcap_format">Output format</label>
+      <select id="pcap_format" name="format">
+        <option value="22000" selected>22000 (recommended)</option>
+        <option value="hcwpax">hcwpax</option>
+        <option value="hccapx">hccapx</option>
+      </select>
+    </div>
+
+    <button type="submit">Convert</button>
+    <span id="pcapStatus" style="margin-left: 10px;"></span>
+  </form>
+</div>
+<div class="card">
+  <h2>MS Office Hash Extractor Tool</h2>
+
+  <form id="officeHashForm" enctype="multipart/form-data">
+    <label>
+      Upload MS Office document
+      <span class="badge">Word · Excel · PowerPoint</span>
+    </label>
+
+    <input
+      type="file"
+      name="office_file"
+      accept=".doc,.docx,.xls,.xlsx,.ppt,.pptx"
+      required
+    />
+
+    <small>
+      Supported formats:
+      <strong>.doc, .docx, .xls, .xlsx, .ppt, .pptx</strong><br>
+      Automatically detects Office version and Hashcat mode.
+    </small>
+
+    <div class="row" style="margin-top:14px;">
+      <button type="submit">Extract Office Hash</button>
+    </div>
+  </form>
+
+  <div id="officeHashStatus" class="hidden" style="margin-top:14px;">
+    <pre class="mono" id="officeHashOutput">Waiting…</pre>
+  </div>
+</div>
+
+  </div>
+
+  <script>
+    const attackMode = document.getElementById('attack_mode');
+    const wordlistSec = document.getElementById('wordlist_section');
+    const maskSec = document.getElementById('mask_section');
+    const hybridSec = document.getElementById('hybrid_section');
+    const incSec = document.getElementById('increment_section');
+
+    const rulesSec = document.getElementById('rules_section');
+    const rulePreset = document.getElementById('rule_preset');
+    const ruleUploadWrap = document.getElementById('rule_upload_wrap');
+    const rulesHint = document.getElementById('rules_hint');
+
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+
+    const etaEl = document.getElementById('eta');
+    const etaBadge = document.getElementById('eta_badge');
+    
+    const wordlistFileInput = document.getElementById('wordlist_file');
+    const wordlistPreset = document.getElementById('wordlist_preset');
+    const wordlistsHint = document.getElementById('wordlists_hint');
+
+
+    function setWordlistOptions(items) {
+      const current = wordlistPreset.value;
+
+      wordlistPreset.innerHTML = '';
+      wordlistPreset.append(new Option('No preset (use upload)', '', true, false));
+
+      for (const it of items) {
+        wordlistPreset.append(new Option(it.label, it.file));
+      }
+
+      
+      if (current) {
+        const exists = Array.from(wordlistPreset.options).some(o => o.value === current);
+        if (exists) wordlistPreset.value = current;
+      }
+    }
+
+    async function loadUploadedWordlists() {
+      try {
+        const res = await fetch('/uploaded_wordlists');
+        const data = await res.json();
+
+        if (data.warning) wordlistsHint.textContent = data.warning;
+        else if (data.error) wordlistsHint.textContent = `Wordlists error: ${data.error}`;
+        else wordlistsHint.textContent = `Found ${data.wordlists.length} system wordlists in ${data.base}`;
+
+        setWordlistOptions(data.wordlists || []);
+     } catch (e) {
+        wordlistsHint.textContent = 'Could not load uploaded wordlists from server.';
+        wordlistPreset.innerHTML = '';
+        wordlistPreset.append(new Option('No preset (use upload)', '', true, false));
+      }
+    }
+
+
+    wordlistPreset.addEventListener('change', () => {
+      if (wordlistPreset.value) {
+        if (wordlistFileInput) wordlistFileInput.value = '';
+      }
+    });
+
+    if (wordlistFileInput) {
+      wordlistFileInput.addEventListener('change', () => {
+        if (wordlistFileInput.files && wordlistFileInput.files.length > 0) {
+          wordlistPreset.value = '';
+        }
+      });
+    }
+
+ 
+    function setRuleOptions(rules) {
+      const current = rulePreset.value;
+      rulePreset.innerHTML = '';
+      rulePreset.append(new Option('No rules', '', true, false));
+      for (const r of rules) rulePreset.append(new Option(r.label, r.file));
+      rulePreset.append(new Option('Upload a .rule file...', '__upload__'));
+
+      if (current) {
+        const exists = Array.from(rulePreset.options).some(o => o.value === current);
+        if (exists) rulePreset.value = current;
+      }
+    }
+
+    async function loadRules() {
+      try {
+        const res = await fetch('/rules');
+        const data = await res.json();
+
+        if (data.warning) rulesHint.textContent = data.warning;
+        else if (data.error) rulesHint.textContent = `Rules error: ${data.error}`;
+        else rulesHint.textContent = `Loaded ${data.rules.length} rules from ${data.base}`;
+
+        setRuleOptions(data.rules || []);
+      } catch (e) {
+        rulePreset.innerHTML = '';
+        rulePreset.append(new Option('No rules', '', true, false));
+        rulePreset.append(new Option('Upload a .rule file...', '__upload__'));
+        rulesHint.textContent = 'Could not load rules from server.';
+      }
+    }
+
+    function updateUiForAttackMode() {
+      const mode = attackMode.value;
+      const usesWordlist = ['0','6','7'].includes(mode);
+      const usesMask = ['3','6','7'].includes(mode);
+      const isHybrid = ['6','7'].includes(mode);
+
+      wordlistSec.classList.toggle('hidden', !usesWordlist);
+      maskSec.classList.toggle('hidden', !usesMask);
+      hybridSec.classList.toggle('hidden', !isHybrid);
+      incSec.classList.toggle('hidden', mode !== '3');
+      rulesSec.classList.toggle('hidden', !usesWordlist);
+
+      if (!usesWordlist) {
+        rulePreset.value = '';
+        ruleUploadWrap.classList.add('hidden');
+        const fileInput = document.querySelector('input[name="rule_file"]');
+        if (fileInput) fileInput.value = '';
+      }
+
+      if (mode === '6') document.querySelector('[name="hybrid_position"]').value = 'append';
+      if (mode === '7') document.querySelector('[name="hybrid_position"]').value = 'prepend';
+    }
+
+    rulePreset.addEventListener('change', () => {
+      ruleUploadWrap.classList.toggle('hidden', rulePreset.value !== '__upload__');
+      if (rulePreset.value !== '__upload__') {
+        const fileInput = document.querySelector('input[name="rule_file"]');
+        if (fileInput) fileInput.value = '';
+      }
+    });
+
+    attackMode.addEventListener('change', updateUiForAttackMode);
+
+    document.getElementById('crackForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      startBtn.disabled = true;
+      startBtn.textContent = 'Starting...';
+      try {
+        const formData = new FormData(e.target);
+        const res = await fetch('/upload', { method: 'POST', body: formData });
+        const data = await res.json();
+        alert(data.message || data.error || 'Unknown response');
+      } finally {
+        startBtn.disabled = false;
+        startBtn.textContent = 'Start Cracking';
+      }
+    });
+
+    stopBtn.addEventListener('click', async () => {
+      stopBtn.disabled = true;
+      stopBtn.textContent = 'Stopping...';
+      try {
+        const res = await fetch('/stop', { method: 'POST' });
+        const data = await res.json();
+        alert(data.message || 'Stop requested.');
+      } finally {
+        stopBtn.textContent = 'Stop Job';
+      }
+    });
+
+    document.getElementById('downloadBtn').addEventListener('click', async () => {
+      try {
+        const res = await fetch('/download');
+        if (!res.ok) {
+          const msg = await res.text();
+          alert('Download failed: ' + msg);
+          return;
+        }
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'recovered_hashes.txt';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      } catch (e) {
+        alert('Download failed: ' + e);
+      }
+    });
+
+    function fmtTime(ts) {
+      if (!ts) return 'N/A';
+      return new Date(ts * 1000).toLocaleString();
+    }
+
+    function extractEtaFromLog(logTail) {
+      if (!logTail) return null;
+      const lines = logTail.split('\n').reverse();
+      for (const line of lines) {
+        if (line.includes('Time.Estimated')) {
+          const idx = line.indexOf(':');
+          return (idx !== -1) ? line.slice(idx + 1).trim() : line.trim();
+        }
+      }
+      return null;
+    }
+
+    function setEtaVisual(running, etaFromLog) {
+      if (!running) {
+        etaEl.style.color = '#bdc3c7';
+        etaBadge.textContent = 'not running';
+        etaBadge.style.color = '#bdc3c7';
+        return;
+      }
+      if (etaFromLog) {
+        etaEl.style.color = '#2ecc71';
+        etaBadge.textContent = 'fresh';
+        etaBadge.style.color = '#2ecc71';
+      } else {
+        etaEl.style.color = '#f1c40f';
+        etaBadge.textContent = 'calculating';
+        etaBadge.style.color = '#f1c40f';
+      }
+    }
+
+    function updateStatus() {
+      fetch('/status')
+        .then(r => r.json())
+        .then(s => {
+          document.getElementById('job').textContent = s.current_job || 'Idle';
+
+          const running = !!s.running;
+          document.getElementById('running').textContent = String(running);
+          document.getElementById('progress').textContent = s.progress || 'N/A';
+
+          const etaFromLog = extractEtaFromLog(s.log_tail || '');
+          const etaText = etaFromLog || s.eta || (running ? 'Calculating...' : 'N/A');
+          etaEl.textContent = etaText;
+          setEtaVisual(running, etaFromLog);
+
+          document.getElementById('last_update').textContent = fmtTime(s.last_update);
+
+          const rc = (s.return_code === null || s.return_code === undefined) ? 'N/A' : s.return_code;
+          document.getElementById('return_code').textContent = rc;
+
+          document.getElementById('error').textContent = s.error || 'None';
+          document.getElementById('cmd').textContent = s.cmd || 'N/A';
+          document.getElementById('recovered').textContent = s.recovered || 'None';
+          document.getElementById('log_tail').textContent = s.log_tail || 'None';
+
+          stopBtn.disabled = !running;
+          document.getElementById('downloadBtn').style.display = s.output_file ? 'inline-block' : 'none';
+        })
+        .catch(() => { /* ignore transient errors */ });
+    }
+
+    // Init
+    loadRules().then(() => updateUiForAttackMode());
+    loadUploadedWordlists();
+    setInterval(updateStatus, 3000);
+    updateStatus();
+  </script>
+
+  <script>
+document.getElementById('pcapForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+
+    const status = document.getElementById('pcapStatus');
+    status.textContent = 'Converting…';
+
+    const formData = new FormData(this);
+
+    try {
+        const res = await fetch('/tools/pcap', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!res.ok) {
+            const err = await res.json();
+            status.textContent = err.error || 'Conversion failed';
+            return;
+        }
+
+        const blob = await res.blob();
+        const disposition = res.headers.get('Content-Disposition');
+        let filename = 'converted';
+
+        if (disposition) {
+            const match = disposition.match(/filename="?([^"]+)"?/);
+            if (match) filename = match[1];
+        }
+
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+
+        status.textContent = 'Done ✔';
+    } catch (err) {
+        console.error(err);
+        status.textContent = 'Error';
+    }
+});
+</script>
+
+<script>
+  const officeForm = document.getElementById('officeHashForm');
+  const officeOut = document.getElementById('officeHashOutput');
+  const officeStatus = document.getElementById('officeHashStatus');
+
+  officeForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    officeStatus.classList.remove('hidden');
+    officeOut.textContent = 'Extracting hashes...\n';
+
+    const formData = new FormData(officeForm);
+
+    try {
+      const res = await fetch('/office_extract', {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || data.error) {
+        officeOut.textContent = 'Error: ' + (data.error || 'Unknown error');
+        return;
+      }
+
+      officeOut.textContent = '';
+
+      data.detected.forEach(item => {
+        officeOut.textContent +=
+          `✔ ${item.label}\n` +
+          `Hashcat Mode: ${item.mode || 'Unknown'}\n` +
+          `${item.hash}\n\n`;
+      });
+
+    } catch (err) {
+      officeOut.textContent = 'Request failed: ' + err;
+    }
+  });
+</script>
+
+
+</body>
+</html>

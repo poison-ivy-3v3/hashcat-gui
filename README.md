@@ -28,6 +28,7 @@ python3 hashcat-gui.py
 
 To use hash extractor tools, double check that office2john.py is saved in your /usr/share/john/ directory.
 
+<img width="1146" height="1040" alt="image" src="https://github.com/user-attachments/assets/46c4012d-9710-4eda-aeeb-403d87e8262b" />
 
 
 <h2 align="center">⚠️ Disclaimer</h2>
